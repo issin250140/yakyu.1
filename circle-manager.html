@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>サークル管理ツール</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #000; font-family: 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', sans-serif; color: #fff; }
+    input, select { outline: none; }
+    button { font-family: inherit; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+const {
+  useState
+} = React;
+const initialMembers = [{
+  id: 1,
+  name: "田中 健太",
+  position: "主将",
+  joined: "2023-04",
+  fee: "paid",
+  phone: "090-1234-5678"
+}, {
+  id: 2,
+  name: "鈴木 美咲",
+  position: "副主将",
+  joined: "2023-04",
+  fee: "paid",
+  phone: "090-2345-6789"
+}, {
+  id: 3,
+  name: "山本 翔",
+  position: "一般",
+  joined: "2024-04",
+  fee: "unpaid",
+  phone: "090-3456-7890"
+}, {
+  id: 4,
+  name: "佐藤 陽菜",
+  position: "会計",
+  joined: "2023-09",
+  fee: "paid",
+  phone: "090-4567-8901"
+}, {
+  id: 5,
+  name: "中村 大輝",
+  position: "一般",
+  joined: "2024-04",
+  fee: "unpaid",
+  phone: "090-5678-9012"
+}];
+const initialEvents = [{
+  id: 1,
+  title: "春季練習試合",
+  date: "2026-05-10",
+  time: "10:00",
+  place: "市民グラウンド",
+  type: "試合"
+}, {
+  id: 2,
+  title: "週次練習",
+  date: "2026-05-13",
+  time: "18:00",
+  place: "第二体育館",
+  type: "練習"
+}, {
+  id: 3,
+  title: "定例ミーティング",
+  date: "2026-05-20",
+  time: "19:00",
+  place: "部室",
+  type: "ミーティング"
+}, {
+  id: 4,
+  title: "合宿",
+  date: "2026-06-07",
+  time: "09:00",
+  place: "山の里スポーツセンター",
+  type: "合宿"
+}];
+const initialAttendance = {
+  1: {
+    1: "出席",
+    2: "出席",
+    3: "欠席",
+    4: "出席",
+    5: "未回答"
+  },
+  2: {
+    1: "出席",
+    2: "未回答",
+    3: "出席",
+    4: "出席",
+    5: "出席"
+  },
+  3: {
+    1: "未回答",
+    2: "出席",
+    3: "出席",
+    4: "欠席",
+    5: "出席"
+  },
+  4: {
+    1: "出席",
+    2: "出席",
+    3: "未回答",
+    4: "出席",
+    5: "欠席"
+  }
+};
+const initialExpenses = [{
+  id: 1,
+  date: "2026-05-01",
+  desc: "グラウンド使用料",
+  amount: -8000,
+  category: "施設費"
+}, {
+  id: 2,
+  date: "2026-05-01",
+  desc: "会費（田中）",
+  amount: 5000,
+  category: "会費収入"
+}, {
+  id: 3,
+  date: "2026-05-01",
+  desc: "会費（鈴木）",
+  amount: 5000,
+  category: "会費収入"
+}, {
+  id: 4,
+  date: "2026-05-02",
+  desc: "会費（佐藤）",
+  amount: 5000,
+  category: "会費収入"
+}, {
+  id: 5,
+  date: "2026-05-03",
+  desc: "ユニフォーム代",
+  amount: -15000,
+  category: "用具費"
+}];
+const typeColors = {
+  "試合": "#e63946",
+  "練習": "#e63946",
+  "ミーティング": "#e63946",
+  "合宿": "#e63946"
+};
+function BaseballBall({
+  id
+}) {
+  return /*#__PURE__*/React.createElement("svg", {
+    viewBox: "0 0 150 150",
+    width: "150",
+    height: "150"
+  }, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("clipPath", {
+    id: "cp-" + id
+  }, /*#__PURE__*/React.createElement("circle", {
+    cx: "75",
+    cy: "75",
+    r: "72"
+  }))), /*#__PURE__*/React.createElement("image", {
+    href: "data:image/jpeg;base64,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",
+    x: "3",
+    y: "3",
+    width: "144",
+    height: "144",
+    clipPath: "url(#cp-" + id + ")",
+    preserveAspectRatio: "xMidYMid slice"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "75",
+    cy: "75",
+    r: "72",
+    fill: "none",
+    stroke: "#ccc",
+    strokeWidth: "0.8"
+  }));
+}
+function App() {
+  const [tab, setTab] = useState("dashboard");
+  const [members, setMembers] = useState(initialMembers);
+  const [events, setEvents] = useState(initialEvents);
+  const [attendance, setAttendance] = useState(initialAttendance);
+  const [expenses, setExpenses] = useState(initialExpenses);
+  const [showMemberForm, setShowMemberForm] = useState(false);
+  const [memberForm, setMemberForm] = useState({
+    name: "",
+    position: "一般",
+    joined: "",
+    phone: ""
+  });
+  const [showEventForm, setShowEventForm] = useState(false);
+  const [eventForm, setEventForm] = useState({
+    title: "",
+    date: "",
+    time: "",
+    place: "",
+    type: "練習"
+  });
+  const [showExpenseForm, setShowExpenseForm] = useState(false);
+  const [expenseForm, setExpenseForm] = useState({
+    date: "",
+    desc: "",
+    amount: "",
+    category: "会費収入",
+    type: "income"
+  });
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const balance = expenses.reduce((s, e) => s + e.amount, 0);
+  const upcomingEvents = [...events].sort((a, b) => a.date.localeCompare(b.date)).slice(0, 3);
+  const addMember = () => {
+    if (!memberForm.name) return;
+    setMembers([...members, {
+      ...memberForm,
+      id: Date.now(),
+      fee: "unpaid"
+    }]);
+    setMemberForm({
+      name: "",
+      position: "一般",
+      joined: "",
+      phone: ""
+    });
+    setShowMemberForm(false);
+  };
+  const addEvent = () => {
+    if (!eventForm.title || !eventForm.date) return;
+    const newEvent = {
+      ...eventForm,
+      id: Date.now()
+    };
+    setEvents([...events, newEvent]);
+    setAttendance(prev => ({
+      ...prev,
+      [newEvent.id]: Object.fromEntries(members.map(m => [m.id, "未回答"]))
+    }));
+    setEventForm({
+      title: "",
+      date: "",
+      time: "",
+      place: "",
+      type: "練習"
+    });
+    setShowEventForm(false);
+  };
+  const addExpense = () => {
+    if (!expenseForm.desc || !expenseForm.amount) return;
+    const amt = expenseForm.type === "income" ? Math.abs(Number(expenseForm.amount)) : -Math.abs(Number(expenseForm.amount));
+    setExpenses([...expenses, {
+      ...expenseForm,
+      id: Date.now(),
+      amount: amt
+    }]);
+    setExpenseForm({
+      date: "",
+      desc: "",
+      amount: "",
+      category: "会費収入",
+      type: "income"
+    });
+    setShowExpenseForm(false);
+  };
+  const toggleFee = id => setMembers(members.map(m => m.id === id ? {
+    ...m,
+    fee: m.fee === "paid" ? "unpaid" : "paid"
+  } : m));
+  const updateAttendance = (eventId, memberId, status) => setAttendance(prev => ({
+    ...prev,
+    [eventId]: {
+      ...prev[eventId],
+      [memberId]: status
+    }
+  }));
+  const inputStyle = {
+    width: "100%",
+    background: "#000000",
+    border: "1px solid #2a2a4a",
+    borderRadius: 8,
+    padding: "8px 12px",
+    color: "#ffffff",
+    fontSize: 13,
+    boxSizing: "border-box"
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      minHeight: "100vh",
+      background: "#000000",
+      color: "#ffffff"
+    }
+  }, tab !== "dashboard" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "12px 16px",
+      background: "#0a0a0a",
+      borderBottom: "1px solid #333"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setTab("dashboard"),
+    style: {
+      background: "none",
+      border: "none",
+      color: "#e63946",
+      cursor: "pointer",
+      fontSize: 14,
+      fontWeight: 700
+    }
+  }, "\u2190 \u30DB\u30FC\u30E0\u3078\u623B\u308B")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "20px 16px",
+      maxWidth: 600,
+      margin: "0 auto"
+    }
+  }, tab === "dashboard" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 20,
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexWrap: "wrap",
+      justifyContent: "center",
+      gap: 28,
+      width: "100%",
+      maxWidth: 380
+    }
+  }, [{
+    key: "members",
+    label: "メンバー",
+    icon: "👥"
+  }, {
+    key: "events",
+    label: "予定",
+    icon: "📅"
+  }, {
+    key: "attendance",
+    label: "出欠",
+    icon: "✅"
+  }, {
+    key: "finance",
+    label: "会計",
+    icon: "💴"
+  }].map(item => /*#__PURE__*/React.createElement("button", {
+    key: item.key,
+    onClick: () => setTab(item.key),
+    style: {
+      width: 150,
+      height: 150,
+      borderRadius: "50%",
+      border: "none",
+      cursor: "pointer",
+      position: "relative",
+      background: "none",
+      padding: 0,
+      filter: "drop-shadow(0 8px 24px rgba(0,0,0,0.7))",
+      transition: "transform 0.15s"
+    },
+    onMouseEnter: e => e.currentTarget.style.transform = "scale(1.08)",
+    onMouseLeave: e => e.currentTarget.style.transform = "scale(1)"
+  }, /*#__PURE__*/React.createElement(BaseballBall, {
+    id: item.key
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      width: "100%",
+      height: "100%",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 4
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 28,
+      filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.6))"
+    }
+  }, item.icon), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 15,
+      fontWeight: 900,
+      color: "#fff",
+      textShadow: "0 1px 6px rgba(0,0,0,0.9)",
+      letterSpacing: 1
+    }
+  }, item.label))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#111111",
+      borderRadius: 14,
+      padding: 16,
+      width: "100%",
+      boxSizing: "border-box"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 700,
+      marginBottom: 12,
+      color: "#888888",
+      letterSpacing: 1
+    }
+  }, "\u76F4\u8FD1\u306E\u30A4\u30D9\u30F3\u30C8"), upcomingEvents.map(e => /*#__PURE__*/React.createElement("div", {
+    key: e.id,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      padding: "10px 0",
+      borderBottom: "1px solid #333"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 8,
+      height: 8,
+      borderRadius: "50%",
+      background: typeColors[e.type] || "#888888",
+      flexShrink: 0
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600
+    }
+  }, e.title), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#888888"
+    }
+  }, e.date, " ", e.time, " \xB7 ", e.place)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      padding: "3px 8px",
+      borderRadius: 20,
+      background: (typeColors[e.type] || "#888888") + "33",
+      color: typeColors[e.type] || "#888888",
+      fontWeight: 600
+    }
+  }, e.type))))), tab === "members" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 18,
+      fontWeight: 700
+    }
+  }, "\u30E1\u30F3\u30D0\u30FC\u4E00\u89A7"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowMemberForm(!showMemberForm),
+    style: {
+      background: "#e63946",
+      color: "#fff",
+      border: "none",
+      borderRadius: 8,
+      padding: "8px 16px",
+      cursor: "pointer",
+      fontWeight: 700,
+      fontSize: 12
+    }
+  }, "\uFF0B \u8FFD\u52A0")), showMemberForm && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#111111",
+      borderRadius: 14,
+      padding: 16,
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 700,
+      marginBottom: 12
+    }
+  }, "\u65B0\u898F\u30E1\u30F3\u30D0\u30FC"), [{
+    label: "名前",
+    key: "name",
+    type: "text"
+  }, {
+    label: "役職",
+    key: "position",
+    type: "text"
+  }, {
+    label: "入部日",
+    key: "joined",
+    type: "month"
+  }, {
+    label: "電話番号",
+    key: "phone",
+    type: "text"
+  }].map(f => /*#__PURE__*/React.createElement("div", {
+    key: f.key,
+    style: {
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#888888",
+      marginBottom: 4
+    }
+  }, f.label), /*#__PURE__*/React.createElement("input", {
+    type: f.type,
+    value: memberForm[f.key],
+    onChange: e => setMemberForm({
+      ...memberForm,
+      [f.key]: e.target.value
+    }),
+    style: inputStyle
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: addMember,
+    style: {
+      flex: 1,
+      background: "#e63946",
+      color: "#fff",
+      border: "none",
+      borderRadius: 8,
+      padding: "10px",
+      cursor: "pointer",
+      fontWeight: 700
+    }
+  }, "\u767B\u9332"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowMemberForm(false),
+    style: {
+      flex: 1,
+      background: "#222222",
+      color: "#888888",
+      border: "none",
+      borderRadius: 8,
+      padding: "10px",
+      cursor: "pointer"
+    }
+  }, "\u30AD\u30E3\u30F3\u30BB\u30EB"))), members.map(m => /*#__PURE__*/React.createElement("div", {
+    key: m.id,
+    style: {
+      background: "#111111",
+      borderRadius: 14,
+      padding: 14,
+      marginBottom: 10,
+      display: "flex",
+      alignItems: "center",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      background: "#e63946",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 16,
+      fontWeight: 700,
+      flexShrink: 0
+    }
+  }, m.name[0]), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      fontSize: 14
+    }
+  }, m.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#888888"
+    }
+  }, m.position, " \xB7 \u5165\u90E8: ", m.joined)), /*#__PURE__*/React.createElement("button", {
+    onClick: () => toggleFee(m.id),
+    style: {
+      padding: "5px 10px",
+      borderRadius: 20,
+      border: "none",
+      background: m.fee === "paid" ? "#111111" : "#1a0000",
+      color: m.fee === "paid" ? "#ffffff" : "#e63946",
+      cursor: "pointer",
+      fontSize: 11,
+      fontWeight: 700
+    }
+  }, m.fee === "paid" ? "納入済" : "未納入")))), tab === "events" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 18,
+      fontWeight: 700
+    }
+  }, "\u30A4\u30D9\u30F3\u30C8\u30FB\u4E88\u5B9A"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowEventForm(!showEventForm),
+    style: {
+      background: "#e63946",
+      color: "#fff",
+      border: "none",
+      borderRadius: 8,
+      padding: "8px 16px",
+      cursor: "pointer",
+      fontWeight: 700,
+      fontSize: 12
+    }
+  }, "\uFF0B \u8FFD\u52A0")), showEventForm && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#111111",
+      borderRadius: 14,
+      padding: 16,
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 700,
+      marginBottom: 12
+    }
+  }, "\u65B0\u898F\u30A4\u30D9\u30F3\u30C8"), [{
+    label: "タイトル",
+    key: "title",
+    type: "text"
+  }, {
+    label: "日付",
+    key: "date",
+    type: "date"
+  }, {
+    label: "時間",
+    key: "time",
+    type: "time"
+  }, {
+    label: "場所",
+    key: "place",
+    type: "text"
+  }].map(f => /*#__PURE__*/React.createElement("div", {
+    key: f.key,
+    style: {
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#888888",
+      marginBottom: 4
+    }
+  }, f.label), /*#__PURE__*/React.createElement("input", {
+    type: f.type,
+    value: eventForm[f.key],
+    onChange: e => setEventForm({
+      ...eventForm,
+      [f.key]: e.target.value
+    }),
+    style: inputStyle
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#888888",
+      marginBottom: 4
+    }
+  }, "\u7A2E\u5225"), /*#__PURE__*/React.createElement("select", {
+    value: eventForm.type,
+    onChange: e => setEventForm({
+      ...eventForm,
+      type: e.target.value
+    }),
+    style: inputStyle
+  }, ["練習", "試合", "ミーティング", "合宿"].map(t => /*#__PURE__*/React.createElement("option", {
+    key: t
+  }, t)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: addEvent,
+    style: {
+      flex: 1,
+      background: "#e63946",
+      color: "#fff",
+      border: "none",
+      borderRadius: 8,
+      padding: "10px",
+      cursor: "pointer",
+      fontWeight: 700
+    }
+  }, "\u767B\u9332"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowEventForm(false),
+    style: {
+      flex: 1,
+      background: "#222222",
+      color: "#888888",
+      border: "none",
+      borderRadius: 8,
+      padding: "10px",
+      cursor: "pointer"
+    }
+  }, "\u30AD\u30E3\u30F3\u30BB\u30EB"))), [...events].sort((a, b) => a.date.localeCompare(b.date)).map(e => /*#__PURE__*/React.createElement("div", {
+    key: e.id,
+    style: {
+      background: "#111111",
+      borderRadius: 14,
+      padding: 14,
+      marginBottom: 10,
+      borderLeft: `3px solid ${typeColors[e.type] || "#888888"}`
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "flex-start"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      fontSize: 14
+    }
+  }, e.title), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      padding: "3px 8px",
+      borderRadius: 20,
+      background: (typeColors[e.type] || "#888888") + "33",
+      color: typeColors[e.type] || "#888888",
+      fontWeight: 700
+    }
+  }, e.type)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#888888",
+      marginTop: 6
+    }
+  }, "\uD83D\uDCC5 ", e.date, "\u3000\u23F0 ", e.time, "\u3000\uD83D\uDCCD ", e.place)))), tab === "attendance" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 18,
+      fontWeight: 700,
+      marginBottom: 16
+    }
+  }, "\u51FA\u6B20\u78BA\u8A8D"), [...events].sort((a, b) => a.date.localeCompare(b.date)).map(e => {
+    const att = attendance[e.id] || {};
+    const counts = {
+      出席: 0,
+      欠席: 0,
+      未回答: 0
+    };
+    members.forEach(m => counts[att[m.id] || "未回答"]++);
+    const isOpen = selectedEvent === e.id;
+    return /*#__PURE__*/React.createElement("div", {
+      key: e.id,
+      style: {
+        background: "#111111",
+        borderRadius: 14,
+        marginBottom: 12,
+        overflow: "hidden"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      onClick: () => setSelectedEvent(isOpen ? null : e.id),
+      style: {
+        padding: 14,
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        gap: 10
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 8,
+        height: 8,
+        borderRadius: "50%",
+        background: typeColors[e.type] || "#888888",
+        flexShrink: 0
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontWeight: 600,
+        fontSize: 13
+      }
+    }, e.title), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "#888888"
+      }
+    }, e.date)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 6,
+        fontSize: 11
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#ffffff"
+      }
+    }, "\u51FA\u5E2D", counts["出席"]), /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#e63946"
+      }
+    }, "\u6B20\u5E2D", counts["欠席"]), /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#888888"
+      }
+    }, "\u672A", counts["未回答"])), /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#888888",
+        fontSize: 12
+      }
+    }, isOpen ? "▲" : "▼")), isOpen && /*#__PURE__*/React.createElement("div", {
+      style: {
+        borderTop: "1px solid #333",
+        padding: "12px 14px"
+      }
+    }, members.map(m => /*#__PURE__*/React.createElement("div", {
+      key: m.id,
+      style: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "8px 0",
+        borderBottom: "1px solid #222"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13
+      }
+    }, m.name), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 6
+      }
+    }, ["出席", "欠席", "未回答"].map(s => /*#__PURE__*/React.createElement("button", {
+      key: s,
+      onClick: () => updateAttendance(e.id, m.id, s),
+      style: {
+        padding: "4px 10px",
+        borderRadius: 20,
+        border: "none",
+        fontSize: 11,
+        cursor: "pointer",
+        fontWeight: 600,
+        background: att[m.id] === s ? s === "出席" ? "#e63946" : s === "欠席" ? "#111111" : "#333333" : "#222222",
+        color: att[m.id] === s ? "#fff" : "#888888"
+      }
+    }, s)))))));
+  })), tab === "finance" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 18,
+      fontWeight: 700
+    }
+  }, "\u4F1A\u8A08\u7BA1\u7406"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowExpenseForm(!showExpenseForm),
+    style: {
+      background: "#e63946",
+      color: "#fff",
+      border: "none",
+      borderRadius: 8,
+      padding: "8px 16px",
+      cursor: "pointer",
+      fontWeight: 700,
+      fontSize: 12
+    }
+  }, "\uFF0B \u8FFD\u52A0")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr 1fr",
+      gap: 10,
+      marginBottom: 16
+    }
+  }, [{
+    label: "収入",
+    value: expenses.filter(e => e.amount > 0).reduce((s, e) => s + e.amount, 0),
+    color: "#ffffff"
+  }, {
+    label: "支出",
+    value: expenses.filter(e => e.amount < 0).reduce((s, e) => s + e.amount, 0),
+    color: "#e63946"
+  }, {
+    label: "残高",
+    value: balance,
+    color: balance >= 0 ? "#ffffff" : "#e63946"
+  }].map((c, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      background: "#111111",
+      borderRadius: 12,
+      padding: 12,
+      textAlign: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: "#888888",
+      marginBottom: 4
+    }
+  }, c.label), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      fontWeight: 700,
+      color: c.color
+    }
+  }, "\xA5", Math.abs(c.value).toLocaleString())))), showExpenseForm && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#111111",
+      borderRadius: 14,
+      padding: 16,
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 700,
+      marginBottom: 12
+    }
+  }, "\u660E\u7D30\u8FFD\u52A0"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#888888",
+      marginBottom: 4
+    }
+  }, "\u7A2E\u5225"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8
+    }
+  }, [{
+    v: "income",
+    l: "収入"
+  }, {
+    v: "expense",
+    l: "支出"
+  }].map(t => /*#__PURE__*/React.createElement("button", {
+    key: t.v,
+    onClick: () => setExpenseForm({
+      ...expenseForm,
+      type: t.v
+    }),
+    style: {
+      flex: 1,
+      padding: "8px",
+      borderRadius: 8,
+      border: "none",
+      cursor: "pointer",
+      background: expenseForm.type === t.v ? t.v === "income" ? "#111111" : "#1a0000" : "#222222",
+      color: expenseForm.type === t.v ? t.v === "income" ? "#ffffff" : "#e63946" : "#888888",
+      fontWeight: 700,
+      fontSize: 12
+    }
+  }, t.l)))), [{
+    label: "日付",
+    key: "date",
+    type: "date"
+  }, {
+    label: "内容",
+    key: "desc",
+    type: "text"
+  }, {
+    label: "金額",
+    key: "amount",
+    type: "number"
+  }].map(f => /*#__PURE__*/React.createElement("div", {
+    key: f.key,
+    style: {
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#888888",
+      marginBottom: 4
+    }
+  }, f.label), /*#__PURE__*/React.createElement("input", {
+    type: f.type,
+    value: expenseForm[f.key],
+    onChange: e => setExpenseForm({
+      ...expenseForm,
+      [f.key]: e.target.value
+    }),
+    style: inputStyle
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: addExpense,
+    style: {
+      flex: 1,
+      background: "#e63946",
+      color: "#fff",
+      border: "none",
+      borderRadius: 8,
+      padding: "10px",
+      cursor: "pointer",
+      fontWeight: 700
+    }
+  }, "\u767B\u9332"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowExpenseForm(false),
+    style: {
+      flex: 1,
+      background: "#222222",
+      color: "#888888",
+      border: "none",
+      borderRadius: 8,
+      padding: "10px",
+      cursor: "pointer"
+    }
+  }, "\u30AD\u30E3\u30F3\u30BB\u30EB"))), [...expenses].sort((a, b) => b.date.localeCompare(a.date)).map(e => /*#__PURE__*/React.createElement("div", {
+    key: e.id,
+    style: {
+      background: "#111111",
+      borderRadius: 12,
+      padding: 12,
+      marginBottom: 8,
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      borderLeft: `3px solid ${e.amount > 0 ? "#ffffff" : "#e63946"}`
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600
+    }
+  }, e.desc), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#888888"
+    }
+  }, e.date, " \xB7 ", e.category)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      fontSize: 14,
+      color: e.amount > 0 ? "#ffffff" : "#e63946"
+    }
+  }, e.amount > 0 ? "+" : "", "\xA5", e.amount.toLocaleString()))))));
+}
+ReactDOM.createRoot(document.getElementById("root")).render(/*#__PURE__*/React.createElement(App, null));
+  </script>
+</body>
+</html>
